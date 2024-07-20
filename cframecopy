@@ -1,0 +1,137 @@
+-- Wait until the game is fully loaded
+repeat wait() until game:IsLoaded()
+
+-- Create GUI elements
+local function createGui()
+    local player = game.Players.LocalPlayer
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CFrameDisplayGUI"
+    screenGui.Parent = player.PlayerGui
+
+    -- Create Frame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 400, 0, 200)
+    frame.Position = UDim2.new(0, 10, 0.5, -100) -- Positioned on the left side of the screen
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+
+    -- Create TextLabel for live CFrame display
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(1, -20, 0.5, -10)
+    textLabel.Position = UDim2.new(0, 10, 0, 10)
+    textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textLabel.TextStrokeTransparency = 0.5
+    textLabel.BackgroundTransparency = 1
+    textLabel.TextScaled = true
+    textLabel.TextWrapped = true
+    textLabel.Text = "CFrame: Not Available"
+    textLabel.Parent = frame
+
+    -- Create TextBox for CFrame info
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(1, -20, 0.4, -10)
+    textBox.Position = UDim2.new(0, 10, 0.5, 10)
+    textBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    textBox.TextStrokeTransparency = 0.5
+    textBox.TextScaled = true
+    textBox.TextWrapped = true
+    textBox.Text = ""
+    textBox.ClearTextOnFocus = false
+    textBox.Parent = frame
+
+    -- Create Button to toggle update
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, -20, 0.2, -10)
+    button.Position = UDim2.new(0, 10, 0.9, 10)
+    button.BackgroundColor3 = Color3.fromRGB(0, 100, 0)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextStrokeTransparency = 0.5
+    button.Text = "click here to start"
+    button.TextScaled = true
+    button.Parent = frame
+
+    return frame, textLabel, textBox, button
+end
+
+-- Function to update the CFrame display
+local function updateCFrameDisplay(textLabel, textBox)
+    local player = game.Players.LocalPlayer
+    local character = player.Character
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local hrp = character.HumanoidRootPart
+        local cframeText = tostring(hrp.CFrame)
+        textLabel.Text = "CFrame:\n" .. cframeText
+        textBox.Text = cframeText  -- Update the TextBox with the current CFrame
+    else
+        textLabel.Text = "HumanoidRootPart not found."
+        textBox.Text = ""
+    end
+end
+
+-- Function to make the frame draggable
+local function makeDraggable(frame)
+    local dragging, dragInput, startPos, startPosFrame
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            startPos = input.Position
+            startPosFrame = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - startPos
+            frame.Position = UDim2.new(startPosFrame.X.Scale, startPosFrame.X.Offset + delta.X, startPosFrame.Y.Scale, startPosFrame.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+-- Main function
+local function main()
+    local frame, textLabel, textBox, button = createGui()
+    local updating = true  -- Flag to control updating
+
+    -- Make the frame draggable
+    makeDraggable(frame)
+
+    -- Update the CFrame display every 0.1 seconds
+    local updateLoop
+    updateLoop = spawn(function()
+        while true do
+            if updating then
+                updateCFrameDisplay(textLabel, textBox)
+            end
+            wait(0.1)
+        end
+    end)
+
+    -- Button click event to toggle the CFrame update
+    button.MouseButton1Click:Connect(function()
+        updating = not updating
+        if updating then
+            button.Text = "Stop"
+        else
+            button.Text = "Start"
+        end
+    end)
+end
+
+-- Execute the main function
+main()
